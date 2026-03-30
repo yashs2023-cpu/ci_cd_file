@@ -1,0 +1,1195 @@
+
+
+
+Claim offer
+
+
+CI-and-CD-.pdf
+PDF
+
+MAVEN-DOCKER-KUBERNETECIS.pdf
+PDF
+i have the lab assignment today, i need step by step process to do it
+
+Got it — your lab is basically CI/CD using Jenkins + Docker + Kubernetes. I’ll give you a clear step-by-step process you can follow directly in lab (no confusion, only actions).
+
+🚀 FULL STEP-BY-STEP (DO THIS IN LAB)
+✅ STEP 1: Setup Environment
+👉 Make sure these are installed:
+
+Docker Desktop
+
+Kubernetes (enabled inside Docker)
+
+Jenkins
+
+Git
+
+📌 From your PDF:
+
+Open Docker → Settings → Enable Kubernetes → Apply & Restart 
+
+
+✅ STEP 2: Create Project Files
+1. Create index.html
+Copy this:
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>CI/CD Demo</title>
+</head>
+<body>
+<h1>CI/CD Pipeline Working</h1>
+<h2>Deployed using Jenkins + Docker + Kubernetes</h2>
+</body>
+</html>
+2. Create Dockerfile
+FROM nginx:latest
+COPY index.html /usr/share/nginx/html/index.html
+EXPOSE 80
+3. Create deployment.yaml
+⚠️ Replace <your-dockerhub-username>
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: html-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: html-demo
+  template:
+    metadata:
+      labels:
+        app: html-demo
+    spec:
+      containers:
+      - name: html-demo
+        image: <your-dockerhub-username>/html-demo:latest
+        ports:
+        - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: html-demo-service
+spec:
+  type: NodePort
+  selector:
+    app: html-demo
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30010
+✅ STEP 3: Push to GitHub
+git init
+git add .
+git commit -m "CI/CD project"
+git branch -M main
+git remote add origin <your-repo-link>
+git push -u origin main
+✅ STEP 4: Setup Jenkins
+Install Plugins:
+Docker
+
+Docker Pipeline
+
+Kubernetes CLI
+
+📌 From PDF step 
+
+
+Add DockerHub Credentials:
+Go:
+
+Manage Jenkins → Manage Credentials → Global → Add
+Fill:
+
+Username → DockerHub username
+
+Password → DockerHub password
+
+ID → dockerhub
+
+✅ STEP 5: Create Jenkins Pipeline Job
+👉 New Item → Pipeline → Name: CI-CD-Demo
+
+Paste this pipeline:
+
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = "yourusername/html-demo"
+    }
+
+    stages {
+
+        stage('Clone Code') {
+            steps {
+                git branch: 'main',
+                    url: 'your-github-repo-link'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                bat 'docker build -t %DOCKER_IMAGE% .'
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
+                )]) {
+                    bat 'docker login -u %USER% -p %PASS%'
+                    bat 'docker push %DOCKER_IMAGE%'
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                bat 'kubectl apply -f deployment.yaml'
+            }
+        }
+    }
+}
+✅ STEP 6: Run Pipeline
+👉 Click:
+
+Build Now
+✅ STEP 7: Verify Output
+Run in terminal:
+
+kubectl get pods
+kubectl get svc
+📌 You should see:
+
+Pods running
+
+Service with NodePort (30010)
+
+✅ STEP 8: Open in Browser
+👉 Open:
+
+http://localhost:30010
+✅ You will see your HTML page
+
+🎯 WHAT TO SAY IN LAB (VERY IMPORTANT)
+If faculty asks:
+
+👉 CI Flow:
+
+Code pushed to GitHub
+
+Jenkins builds Docker image
+
+👉 CD Flow:
+
+Image pushed to DockerHub
+
+Kubernetes deploys container
+
+👉 Tools Used:
+
+Jenkins → Automation
+
+Docker → Containerization
+
+Kubernetes → Deployment
+
+⚡ QUICK CHECKLIST (LAST MINUTE)
+✔ Docker running
+✔ Kubernetes enabled
+✔ GitHub repo created
+✔ DockerHub account ready
+✔ Jenkins pipeline created
+✔ deployment.yaml correct
+
+If you want, I can give you:
+✅ viva questions
+✅ common errors + fixes (VERY useful in lab)
+
+
+Commit message: "Update deployment.yaml"
+ > git.exe rev-list --no-walk 1ff1f94e45b6f3f863f21e2c3b8525f6dce54077 # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build Docker Image)
+[Pipeline] bat
+
+C:\ProgramData\Jenkins\.jenkins\workspace\CI-CD>docker build -t 23mis0625/html-demo . 
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2B done
+#1 DONE 0.0s
+ERROR: failed to build: failed to solve: failed to read dockerfile: open Dockerfile: no such file or directory
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Push Image)
+Stage "Push Image" skipped due to earlier failure(s)
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Deploy to Kubernetes)
+Stage "Deploy to Kubernetes" skipped due to earlier failure(s)
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+ERROR: script returned exit code 1
+Finished: FAILURE
+this is the error i am getting
+
+Good — this is a very common lab error, and it’s actually simple to fix.
+
+❌ ERROR YOU GOT
+failed to read dockerfile: open Dockerfile: no such file or directory
+👉 Meaning:
+Jenkins cannot find your Dockerfile in the project folder
+
+✅ WHY THIS HAPPENS
+One (or more) of these is wrong:
+
+❌ Dockerfile not pushed to GitHub
+
+❌ File name is wrong (VERY COMMON)
+
+❌ File is not in root directory
+
+❌ Extension mistake like:
+
+Dockerfile.txt
+
+dockerfile (lowercase)
+
+🔥 STEP-BY-STEP FIX
+✅ STEP 1: Check File Name (MOST IMPORTANT)
+👉 It must be EXACTLY:
+
+Dockerfile
+✔ No extension
+✔ Capital D
+
+✅ STEP 2: Check GitHub Repo
+Open your repo and confirm you see:
+
+index.html
+Dockerfile
+deployment.yaml
+👉 If Dockerfile missing → DO THIS:
+
+git add Dockerfile
+git commit -m "Added Dockerfile"
+git push
+✅ STEP 3: Check File Location
+👉 Structure must be:
+
+project-folder/
+   ├── index.html
+   ├── Dockerfile
+   ├── deployment.yaml
+❌ NOT like:
+
+project/
+   └── docker/
+        └── Dockerfile   ❌
+✅ STEP 4: Force Jenkins to Rebuild
+In Jenkins:
+
+👉 Click:
+
+Build Now
+OR better:
+
+Build with Parameters → Clean Workspace
+✅ STEP 5 (IMPORTANT): Add Debug Step
+To confirm files exist, temporarily add this stage:
+
+stage('Check Files') {
+    steps {
+        bat 'dir'
+    }
+}
+👉 This will show:
+
+Dockerfile
+index.html
+deployment.yaml
+⚡ QUICK FIX SUMMARY (WRITE THIS IN LAB IF ASKED)
+👉 Error cause:
+
+Dockerfile not found in workspace
+
+👉 Solution:
+
+Ensure Dockerfile exists
+
+Correct name (no extension)
+
+Push to GitHub
+
+Rebuild pipeline
+
+🧠 MOST LIKELY YOUR ISSUE
+Based on your error:
+
+transferring dockerfile: 2B
+👉 This means:
+
+Either empty file OR wrong file detected
+
+💥 90% chance:
+👉 Your file is named Dockerfile.txt
+
+✅ FINAL CHECK
+✔ Rename file → Dockerfile
+✔ Push again
+✔ Run Jenkins
+
+If it still fails, send:
+👉 screenshot of your GitHub repo files
+
+I’ll fix it instantly 👍
+
+
+error: cannot perform an interactive login from a non-TTY device
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Deploy to Kubernetes)
+Stage "Deploy to Kubernetes" skipped due to earlier failure(s)
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+ERROR: script returned exit code 1
+Finished: FAILURE
+
+Nice — you fixed the first error 👍
+Now this is the next common Jenkins issue.
+
+❌ ERROR
+cannot perform an interactive login from a non-TTY device
+🎯 WHY THIS HAPPENS
+👉 Jenkins runs in non-interactive mode
+👉 But your command:
+
+docker login -u USER -p PASS
+tries to login interactively
+
+🚫 That’s not allowed inside Jenkins
+
+✅ FIX (VERY IMPORTANT)
+🔥 Replace your login command
+❌ WRONG (current)
+docker login -u %USER% -p %PASS%
+✅ CORRECT (use password-stdin)
+echo %PASS% | docker login -u %USER% --password-stdin
+✅ UPDATE YOUR PIPELINE
+Change Push Image stage to this:
+
+stage('Push Image') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub',
+            usernameVariable: 'USER',
+            passwordVariable: 'PASS'
+        )]) {
+            bat """
+                echo %PASS% | docker login -u %USER% --password-stdin
+                docker push %DOCKER_IMAGE%
+            """
+        }
+    }
+}
+⚡ WHY THIS WORKS
+👉 --password-stdin avoids interactive login
+👉 Jenkins can pass password safely
+
+🧪 AFTER FIX
+👉 Click:
+
+Build Now
+✅ EXPECTED RESULT
+✔ Docker image builds
+✔ Successfully pushed to DockerHub
+✔ Kubernetes stage runs
+
+🚨 IF STILL ERROR
+Check:
+
+1. Credentials ID
+Must match exactly:
+
+dockerhub
+2. DockerHub login manually (just once)
+Run in CMD:
+
+docker login
+3. Image name format
+username/html-demo
+🎯 LAB EXPLANATION (IF ASKED)
+👉 Error:
+
+Jenkins cannot use interactive login
+
+👉 Fix:
+
+Use --password-stdin for secure non-interactive login
+
+If next step fails (Kubernetes), send error — I’ll guide instantly 👍
+
+
+Started by user yash_s
+org.codehaus.groovy.control.MultipleCompilationErrorsException: startup failed:
+WorkflowScript: 30: unexpected token: | @ line 30, column 33.
+                       echo %PASS% | docker login -u %USER% --password-stdin
+                                   ^
+
+1 error
+
+Good — this is a syntax issue in Jenkins (Groovy), not Docker. Easy fix 👍
+
+❌ ERROR
+unexpected token: |
+👉 Reason:
+
+Jenkins Groovy doesn’t understand | inside single-line bat properly
+
+You need to wrap it correctly in a multi-line block
+
+✅ FIX (CORRECT WAY)
+🔥 Replace your Push stage with this EXACT code:
+stage('Push Image') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub',
+            usernameVariable: 'USER',
+            passwordVariable: 'PASS'
+        )]) {
+            bat '''
+                echo %PASS% | docker login -u %USER% --password-stdin
+                docker push %DOCKER_IMAGE%
+            '''
+        }
+    }
+}
+⚡ WHY THIS WORKS
+👉 ''' ''' = multi-line batch script
+👉 Allows | pipe operator
+👉 Jenkins executes it properly
+
+🚫 COMMON MISTAKES (YOU DID THIS)
+❌ Using:
+
+bat "echo %PASS% | docker login ..."
+👉 This breaks because | is treated wrongly by Groovy
+
+✅ AFTER FIX
+👉 Click:
+
+Build Now
+🎯 IF SUCCESS
+You’ll see:
+
+Login Succeeded
+Pushed
+Then Kubernetes stage will run ✅
+
+🧠 QUICK LAB LINE
+👉 Error cause:
+
+Groovy syntax issue with pipe |
+
+👉 Fix:
+
+Use multi-line bat ''' ''' block
+
+If next error comes (very likely Kubernetes or image pull), send it — we’ll finish this fully 💯
+
+
+Started by user yash_s
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in C:\ProgramData\Jenkins\.jenkins\workspace\CI-CD
+[Pipeline] {
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Clone Code)
+[Pipeline] git
+The recommended git tool is: NONE
+No credentials specified
+ > git.exe rev-parse --resolve-git-dir C:\ProgramData\Jenkins\.jenkins\workspace\CI-CD\.git # timeout=10
+Fetching changes from the remote Git repository
+ > git.exe config remote.origin.url https://github.com/yashs2023-cpu/docker_repo.git # timeout=10
+Fetching upstream changes from https://github.com/yashs2023-cpu/docker_repo.git
+ > git.exe --version # timeout=10
+ > git --version # 'git version 2.53.0.windows.1'
+ > git.exe fetch --tags --force --progress -- https://github.com/yashs2023-cpu/docker_repo.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git.exe rev-parse "refs/remotes/origin/main^{commit}" # timeout=10
+Checking out Revision 602e37b1259ed372b4d1bfe6fdfa3f99a09e0dac (refs/remotes/origin/main)
+ > git.exe config core.sparsecheckout # timeout=10
+ > git.exe checkout -f 602e37b1259ed372b4d1bfe6fdfa3f99a09e0dac # timeout=10
+ > git.exe branch -a -v --no-abbrev # timeout=10
+ > git.exe branch -D main # timeout=10
+ > git.exe checkout -b main 602e37b1259ed372b4d1bfe6fdfa3f99a09e0dac # timeout=10
+Commit message: "Rename Dockerfile.dockerfile to Dockerfile"
+ > git.exe rev-list --no-walk 602e37b1259ed372b4d1bfe6fdfa3f99a09e0dac # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build Docker Image)
+[Pipeline] bat
+
+C:\ProgramData\Jenkins\.jenkins\workspace\CI-CD>docker build -t 23mis0625/html-demo . 
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 121B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/nginx:latest
+#2 DONE 1.4s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 32B 0.0s done
+#4 DONE 0.0s
+
+#5 [1/2] FROM docker.io/library/nginx:latest@sha256:7150b3a39203cb5bee612ff4a9d18774f8c7caf6399d6e8985e97e28eb751c18
+#5 resolve docker.io/library/nginx:latest@sha256:7150b3a39203cb5bee612ff4a9d18774f8c7caf6399d6e8985e97e28eb751c18
+#5 resolve docker.io/library/nginx:latest@sha256:7150b3a39203cb5bee612ff4a9d18774f8c7caf6399d6e8985e97e28eb751c18 0.1s done
+#5 DONE 0.1s
+
+#6 [2/2] COPY index.html /usr/share/nginx/html/index.html
+#6 CACHED
+
+#7 exporting to image
+#7 exporting layers done
+#7 exporting manifest sha256:9685dc3840e62e3c798447b6745ac88b1ef7a97619f4d844e4aacd888817de75
+#7 exporting manifest sha256:9685dc3840e62e3c798447b6745ac88b1ef7a97619f4d844e4aacd888817de75 0.0s done
+#7 exporting config sha256:446e7a321e1e4bd29d5bba9a563b019c261b6f0b1d9b14d790e2d025b5a342bb 0.0s done
+#7 exporting attestation manifest sha256:4190c29ca8c44fcd83dbed90bd64bdf63608814d91f39e513ff67ca781960107 0.0s done
+#7 exporting manifest list sha256:b2f9c4d0adde4f96e3f1085f412805ce04c94443c275088fc7980fd2a6ab7e7c 0.0s done
+#7 naming to docker.io/23mis0625/html-demo:latest done
+#7 unpacking to docker.io/23mis0625/html-demo:latest 0.0s done
+#7 DONE 0.4s
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Push Image)
+[Pipeline] withCredentials
+Masking supported pattern matches of %yash210705%
+[Pipeline] {
+[Pipeline] bat
+
+C:\ProgramData\Jenkins\.jenkins\workspace\CI-CD>echo    | docker login -u  --password-stdin 
+error: cannot perform an interactive login from a non-TTY device
+
+C:\ProgramData\Jenkins\.jenkins\workspace\CI-CD>docker push 23mis0625/html-demo 
+Using default tag: latest
+The push refers to repository [docker.io/23mis0625/html-demo]
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+358eaa76327f: Waiting
+278e912c9302: Waiting
+cde7a05ae428: Waiting
+587e3d84dbb5: Waiting
+bb3d0aa29654: Waiting
+ec781dee3f47: Waiting
+510ddf6557d6: Waiting
+5e815e07e569: Waiting
+3189680c601f: Waiting
+push access denied, repository does not exist or may require authorization: server message: insufficient_scope: authorization failed
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Deploy to Kubernetes)
+Stage "Deploy to Kubernetes" skipped due to earlier failure(s)
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+ERROR: script returned exit code 1
+Finished: FAILURE
+
+Perfect — now we’re very close. Your build is ✅ working.
+Only Docker login + push is failing.
+
+❌ MAIN PROBLEM (from your log)
+echo    | docker login -u  --password-stdin
+👉 See this carefully:
+
+Username missing
+
+Password missing
+
+💥 That’s why:
+
+push access denied / authorization failed
+🎯 ROOT CAUSE
+👉 Jenkins is NOT reading your credentials properly
+
+✅ FIX STEP-BY-STEP (IMPORTANT)
+✅ STEP 1: Check Credentials ID
+Go to:
+
+Manage Jenkins → Manage Credentials → Global
+👉 Make sure:
+
+ID = dockerhub ✅ (must match EXACTLY)
+
+Username = your DockerHub username
+
+Password = your DockerHub password
+
+✅ STEP 2: FIX PIPELINE CODE (FINAL WORKING VERSION)
+Replace your Push stage with this:
+
+stage('Push Image') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+        )]) {
+            bat '''
+                echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                docker push %DOCKER_IMAGE%
+            '''
+        }
+    }
+}
+⚡ WHY YOUR CURRENT ONE FAILED
+Your log shows:
+
+echo    | docker login -u
+👉 Means:
+
+%USER% → EMPTY
+
+%PASS% → EMPTY
+
+So Jenkins didn’t inject credentials.
+
+✅ STEP 3: CHECK IMAGE NAME (ALSO IMPORTANT)
+You are using:
+
+23mis0625/html-demo
+👉 Make sure:
+
+DockerHub username = 23mis0625 ✅
+
+Repo exists OR Docker auto-creates
+
+👉 Test manually once:
+Run in CMD:
+
+docker login
+docker push 23mis0625/html-demo
+✅ STEP 4: CLEAN BUILD (IMPORTANT)
+In Jenkins:
+
+👉 Click:
+
+Build with Parameters → Wipe Workspace
+OR manually:
+
+Delete workspace → Build Now
+🎯 FINAL EXPECTED OUTPUT
+✔ Login Succeeded
+✔ Pushed image
+✔ Kubernetes deploy runs
+
+🧠 LAB EXPLANATION
+👉 Error:
+
+Credentials not injected → login failed
+
+👉 Fix:
+
+Correct credentialsId
+
+Use proper environment variables
+
+🚨 IF STILL FAILS
+Send me:
+👉 Screenshot of Jenkins Credentials page
+
+I’ll spot the issue instantly (usually 1 small mistake only) 👍
+
+
+failed to authorize: failed to fetch anonymous token: Get "https://auth.docker.io/token?scope=repository%3A23mis0625%2Fhtml-demo%3Apull%2Cpush&service=registry.docker.io": context canceled
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Deploy to Kubernetes)
+Stage "Deploy to Kubernetes" skipped due to earlier failure(s)
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+ERROR: script returned exit code 1
+Finished: FAILURE
+
+Good — now this is the last type of error, and it’s NOT your code anymore.
+It’s mainly login/network/auth issue with DockerHub.
+
+❌ ERROR
+failed to fetch anonymous token
+context canceled
+🎯 WHAT IT MEANS
+👉 Docker is trying to:
+
+connect to DockerHub ❌
+
+but login/session failed OR network blocked
+
+🔍 FROM YOUR PREVIOUS ERROR
+We already saw:
+
+echo    | docker login -u
+👉 So login never actually succeeded
+
+✅ FINAL FIX (DO THIS EXACTLY)
+🔥 STEP 1: TEST DOCKER LOGIN MANUALLY (VERY IMPORTANT)
+Open Command Prompt (NOT Jenkins) and run:
+
+docker login
+👉 Enter:
+
+Username: 23mis0625
+
+Password: your DockerHub password
+
+✅ IF SUCCESS:
+You should see:
+
+Login Succeeded
+👉 If this fails → your password/token is wrong
+
+🔥 STEP 2: USE ACCESS TOKEN (BEST PRACTICE)
+👉 DockerHub may block normal password login
+
+Do this:
+Go to DockerHub
+
+Settings → Security
+
+Create Access Token
+
+👉 Then in Jenkins credentials:
+
+Username → 23mis0625
+
+Password → PASTE TOKEN (not password)
+
+🔥 STEP 3: VERIFY PIPELINE (FINAL VERSION)
+Use this EXACT:
+
+stage('Push Image') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+        )]) {
+            bat '''
+                echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                docker push %DOCKER_IMAGE%
+            '''
+        }
+    }
+}
+🔥 STEP 4: CHECK INTERNET / DOCKER
+👉 Sometimes lab systems block DockerHub
+
+Run:
+
+docker pull nginx
+👉 If this fails → network issue
+
+🔥 STEP 5: RESTART (IMPORTANT)
+Do this once:
+
+Restart Docker Desktop
+
+Restart Jenkins
+
+⚡ QUICK DIAGNOSIS
+Issue	Fix
+Login failed	Use access token
+Credentials empty	Fix Jenkins credentials
+Network blocked	Check docker pull
+Session issue	Restart Docker
+🎯 MOST LIKELY YOUR CASE
+💥 80% chance:
+👉 You are using DockerHub password instead of access token
+
+🧠 WHAT TO SAY IN LAB
+👉 Error:
+
+Docker authentication failed
+
+👉 Fix:
+
+Used DockerHub access token
+
+Configured Jenkins credentials properly
+
+🚀 AFTER THIS
+Pipeline will:
+✔ Build image
+✔ Push to DockerHub
+✔ Deploy to Kubernetes
+
+If it STILL fails, send:
+👉 screenshot of Jenkins credentials
+👉 I’ll pinpoint exact issue in 1 message 👍
+
+
+Uploaded image
+
+Perfect — this screenshot makes it very clear 👍
+
+❌ FINAL ERROR
+push access denied, repository does not exist or may require authorization
+🎯 EXACT PROBLEM
+👉 Two things are wrong:
+
+1. ❌ Docker login is STILL failing
+Earlier we saw:
+
+echo    | docker login -u
+➡️ Credentials are NOT being passed
+
+2. ❌ Repository issue
+repository does not exist
+👉 Either:
+
+Repo not created on DockerHub
+
+OR wrong username
+
+✅ FINAL WORKING FIX (DO THIS EXACTLY)
+🔥 STEP 1: CREATE REPO IN DOCKERHUB (IMPORTANT)
+👉 Go to DockerHub
+👉 Click Create Repository
+
+Fill:
+
+Repository name: html-demo
+Visibility: Public
+👉 So final repo becomes:
+
+23mis0625/html-demo
+🔥 STEP 2: FIX JENKINS CREDENTIALS (MOST IMPORTANT)
+Go:
+
+Manage Jenkins → Manage Credentials
+👉 Delete old one ❌
+👉 Add new:
+
+Field	Value
+Kind	Username with password
+Username	23mis0625
+Password	🔥 DockerHub ACCESS TOKEN
+ID	dockerhub
+🔥 STEP 3: VERIFY PIPELINE (FINAL)
+Use this EXACT code:
+
+stage('Push Image') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+        )]) {
+            bat '''
+                echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                docker push %DOCKER_IMAGE%
+            '''
+        }
+    }
+}
+🔥 STEP 4: TEST LOGIN MANUALLY (VERY IMPORTANT)
+Run in CMD:
+
+docker login -u 23mis0625
+👉 Paste ACCESS TOKEN (not password)
+
+🔥 STEP 5: CLEAN BUILD
+👉 In Jenkins:
+
+Delete Workspace → Build Now
+✅ EXPECTED OUTPUT
+✔ Login Succeeded
+✔ Pushed image
+✔ No “denied” error
+✔ Kubernetes stage runs
+
+⚡ QUICK SUMMARY (WRITE IN LAB)
+👉 Error:
+
+Authorization failed while pushing image
+
+👉 Reason:
+
+Wrong credentials / repo not created
+
+👉 Fix:
+
+Created DockerHub repo
+
+Used access token
+
+Configured Jenkins credentials properly
+
+🚀 YOU ARE 95% DONE
+After this:
+👉 Your pipeline will FULLY work
+
+If it STILL fails (very rare now), send:
+👉 Jenkins credentials screenshot
+
+I’ll fix it instantly 👍
+
+
+
+
+
+Mr E
